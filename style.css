@@ -114,7 +114,7 @@ body {
 .hero h1,
 .verify-hero h1 {
   margin: 0;
-  font-size: clamp(28px, 7.6vw, 34px);
+  font-size: 24px;
   line-height: 1.16;
   font-weight: 800;
   letter-spacing: -0.04em;
@@ -122,7 +122,7 @@ body {
 
 .hero p,
 .verify-hero p {
-  margin: 28px 0 0;
+  margin: 15px 0 0;
   font-size: clamp(18px, 5vw, 22px);
   line-height: 1.3;
   color: var(--muted);
@@ -130,13 +130,13 @@ body {
 }
 
 .form-area {
-  padding-top: 72px;
+  padding-top: 40px;
 }
 
 .phone-field {
   display: flex;
   align-items: center;
-  min-height: 92px;
+  min-height: 65px;
   background: rgba(34, 34, 38, 0.98);
   border-radius: 26px;
   padding: 0 22px;
@@ -218,7 +218,7 @@ body {
 
 .continue-button {
   width: 100%;
-  min-height: 70px;
+  min-height: 60px;
   border: 0;
   border-radius: 15px;
   background: linear-gradient(180deg, #2a2930 0%, #26252b 100%);
@@ -264,7 +264,7 @@ body {
   margin: 18px auto 0;
   max-width: 390px;
   color: #b8b8be;
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.35;
   letter-spacing: -0.02em;
 }
