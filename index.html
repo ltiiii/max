@@ -43,7 +43,6 @@
 
         <section class="bottom-area">
           <button class="continue-button" id="submit-button" type="submit">Продолжить</button>
-          <p class="status-message" style="display: none;" id="status-message" aria-live="polite"></p>
           <p class="agreement">
             Нажимая «Продолжить», вы принимаете политику конфиденциальности и пользовательское соглашение.
           </p>
@@ -68,7 +67,6 @@
 
       <form class="verify-form" id="verify-form">
         <label class="sr-only" for="verify-code">Код подтверждения</label>
-        <p class="verify-status-message" id="verify-status-message" aria-live="polite"></p>
         <div class="code-input-area">
           <input id="verify-code" class="verify-code-input" name="code" type="tel" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
           <div class="code-boxes" aria-hidden="true">
@@ -90,7 +88,7 @@
         </button>
       </header>
 
-      <section class="name-hero">
+      <section class="name-hero" id="name-hero">
         <div class="name-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M7 10.5V8.75C7 6.12665 9.12665 4 11.75 4C14.3734 4 16.5 6.12665 16.5 8.75V10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -104,6 +102,7 @@
 
       <form class="name-form" id="name-form">
         <label class="sr-only" for="name-input">Имя</label>
+        <p class="name-status-message" id="name-status-message" aria-live="polite"></p>
         <input id="name-input" class="name-input" name="name" type="text" maxlength="80" autocomplete="name" placeholder="">
         <button class="name-submit-button" id="name-submit-button" type="submit">Продолжить</button>
       </form>

