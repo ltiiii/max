@@ -562,7 +562,7 @@ body {
     min-height: 45px;
     padding: 0 18px;
     gap: 10px;
-    border-radius: 22px;
+    border-radius: 15px;
   }
 
   .country-selector {
