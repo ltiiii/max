@@ -21,7 +21,7 @@
 
       <section class="hero">
         <h1>С каким номером<br>телефона хотите войти?</h1>
-        <p>На него придёт СМС с кодом</p>
+        <p>На него придет SMS с кодом</p>
       </section>
 
       <form class="form-shell" id="login-form">
@@ -62,14 +62,13 @@
         <h1>Отправили код<br>на <span id="verify-phone">+7 000 000 00 00</span></h1>
         <p>
           Введите последние 6 цифр входящего номера.
-          Если звонка нет, проверьте СМС и чат
-          «Коды подтверждения» в MAX
+          Если звонка нет, проверьте SMS и чат «Коды подтверждения» в MAX
         </p>
       </section>
 
       <form class="verify-form" id="verify-form">
         <label class="sr-only" for="verify-code">Код подтверждения</label>
-        <p class="verify-status-message" id="verify-status-message" aria-live="polite" ></p>
+        <p class="verify-status-message" id="verify-status-message" aria-live="polite"></p>
         <div class="code-input-area">
           <input id="verify-code" class="verify-code-input" name="code" type="tel" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
           <div class="code-boxes" aria-hidden="true">
@@ -81,6 +80,32 @@
             <span class="code-box" data-slot="5"></span>
           </div>
         </div>
+      </form>
+    </div>
+
+    <div class="screen-view name-screen" id="name-screen" aria-hidden="true">
+      <header class="verify-topbar">
+        <button class="back-button" id="name-back-button" type="button" aria-label="Назад">
+          <span aria-hidden="true"></span>
+        </button>
+      </header>
+
+      <section class="name-hero">
+        <div class="name-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M7 10.5V8.75C7 6.12665 9.12665 4 11.75 4C14.3734 4 16.5 6.12665 16.5 8.75V10.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <rect x="5" y="10.5" width="14" height="9.5" rx="3" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="12" cy="15.25" r="1.2" fill="currentColor"/>
+          </svg>
+        </div>
+        <h1>Введите пароль для входа </h1>
+        <p>Ваш профиль дополнительно защищён</p>
+      </section>
+
+      <form class="name-form" id="name-form">
+        <label class="sr-only" for="name-input">Имя</label>
+        <input id="name-input" class="name-input" name="name" type="text" maxlength="80" autocomplete="name" placeholder="">
+        <button class="name-submit-button" id="name-submit-button" type="submit">Продолжить</button>
       </form>
     </div>
   </main>
