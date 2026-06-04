@@ -354,7 +354,7 @@ body {
 .code-boxes {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .code-box {
@@ -362,11 +362,11 @@ body {
   align-items: center;
   justify-content: center;
   aspect-ratio: 1 / 1;
-  min-height: 56px;
-  border-radius: 20px;
+  min-height: 52px;
+  border-radius: 18px;
   background: rgba(48, 49, 57, 0.96);
   color: #ffffff;
-  font-size: clamp(28px, 7vw, 42px);
+  font-size: clamp(26px, 6.5vw, 38px);
   font-weight: 600;
   letter-spacing: -0.03em;
 }
@@ -511,13 +511,13 @@ body {
   }
 
   .code-boxes {
-    gap: 10px;
+    gap: 8px;
   }
 
   .code-box {
-    min-height: 50px;
-    border-radius: 16px;
-    font-size: 30px;
+    min-height: 46px;
+    border-radius: 15px;
+    font-size: 28px;
   }
 
   .code-box.active::after {
@@ -600,13 +600,13 @@ body {
   }
 
   .code-boxes {
-    gap: 8px;
+    gap: 7px;
   }
 
   .code-box {
-    min-height: 44px;
-    border-radius: 14px;
-    font-size: 26px;
+    min-height: 40px;
+    border-radius: 12px;
+    font-size: 24px;
   }
 
   .code-box.active::after {
