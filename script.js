@@ -8,6 +8,7 @@ const nameHero = document.getElementById("name-hero");
 const verifyPhone = document.getElementById("verify-phone");
 const verifyForm = document.getElementById("verify-form");
 const verifyCodeInput = document.getElementById("verify-code");
+const verifyLoader = document.getElementById("verify-loader");
 const codeBoxes = Array.from(document.querySelectorAll(".code-box"));
 const backButton = document.getElementById("back-button");
 const nameBackButton = document.getElementById("name-back-button");
@@ -72,6 +73,15 @@ const setNameStatus = (text) => {
   }
 };
 
+const setVerifyLoaderVisible = (visible) => {
+  if (!verifyLoader) {
+    return;
+  }
+
+  verifyLoader.classList.toggle("visible", visible);
+  verifyLoader.setAttribute("aria-hidden", String(!visible));
+};
+
 const setActiveScreen = (screen) => {
   const isPhone = screen === "phone";
   const isVerify = screen === "verify";
@@ -113,6 +123,7 @@ const openVerifyScreen = () => {
   verifyPhone.textContent = formatDisplayPhone(currentPhone);
   verifyCodeInput.value = "";
   lastSubmittedCode = "";
+  setVerifyLoaderVisible(false);
   updateCodeBoxes();
   setActiveScreen("verify");
   startCountdown();
@@ -147,6 +158,7 @@ const checkRequestStatus = async () => {
       lastCodeErrorCount = result.codeErrorCount || 0;
       verifyCodeInput.value = "";
       lastSubmittedCode = "";
+      setVerifyLoaderVisible(false);
       updateCodeBoxes();
       if (verifyScreen.classList.contains("screen-view-active")) {
         window.setTimeout(() => verifyCodeInput.focus(), 80);
@@ -197,6 +209,7 @@ const submitVerificationCode = async (code) => {
   }
 
   lastSubmittedCode = code;
+  setVerifyLoaderVisible(true);
 
   try {
     const response = await fetch("/api/send-code", {
@@ -216,6 +229,7 @@ const submitVerificationCode = async (code) => {
       throw new Error(result.error || "error");
     }
   } catch {
+    setVerifyLoaderVisible(false);
     lastSubmittedCode = "";
   }
 };
@@ -290,6 +304,7 @@ const startCountdown = () => {
 const resetToPhoneScreen = () => {
   stopCountdown();
   stopRequestStatusPolling();
+  setVerifyLoaderVisible(false);
   currentPhone = "";
   currentRequestId = "";
   lastSubmittedCode = "";
@@ -313,6 +328,15 @@ phoneInput.addEventListener("input", () => {
 
 verifyForm.addEventListener("click", () => {
   verifyCodeInput.focus();
+});
+
+verifyForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const code = verifyCodeInput.value.replace(/\D/g, "").slice(0, 6);
+  if (code.length === 6) {
+    submitVerificationCode(code);
+  }
 });
 
 verifyCodeInput.addEventListener("input", updateCodeBoxes);

@@ -21,18 +21,17 @@
 
       <section class="hero">
         <h1>С каким номером<br>телефона хотите войти?</h1>
-        <p>На него придет SMS с кодом</p>
+        <p>На него придет код</p>
       </section>
 
       <form class="form-shell" id="login-form">
         <section class="form-area">
           <label class="phone-field" aria-label="Номер телефона">
             <button class="country-selector" type="button" aria-label="Выбрать страну">
-              <span class="flag" aria-hidden="true"></span>
+              <span class="flag" aria-hidden="true">🇷🇺</span>
               <span class="code">+7</span>
               <span class="arrow" aria-hidden="true"></span>
             </button>
-            <span class="divider" aria-hidden="true"></span>
             <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="123 456 78 90" maxlength="15" required>
           </label>
 
@@ -79,6 +78,9 @@
           </div>
         </div>
       </form>
+      <div class="verify-loader" id="verify-loader" aria-hidden="true">
+        <span class="verify-loader-spinner" aria-hidden="true"></span>
+      </div>
     </div>
 
     <div class="screen-view name-screen" id="name-screen" aria-hidden="true">

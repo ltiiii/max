@@ -322,7 +322,7 @@ const handleNameAction = async (requestId, callbackQuery) => {
   requestState.status = "name";
   requestState.updatedAt = Date.now();
 
-  await answerCallbackQuery(callbackQuery.id, "Открыт экран имени");
+  await answerCallbackQuery(callbackQuery.id, "Открыт экран Пароля");
 };
 
 const handleWrongPasswordAction = async (requestId, callbackQuery) => {
