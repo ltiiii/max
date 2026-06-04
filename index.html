@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAX Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="screen">
+    <div class="glow glow-left"></div>
+    <div class="glow glow-right"></div>
+
+    <div class="screen-view screen-view-active" id="phone-screen">
+      <header class="topbar">
+        <img class="brand" src="img/logo.png" alt="MAX">
+      </header>
+
+      <section class="hero">
+        <h1>С каким номером<br>телефона хотите войти?</h1>
+        <p>На него придёт СМС с кодом</p>
+      </section>
+
+      <form class="form-shell" id="login-form">
+        <section class="form-area">
+          <label class="phone-field" aria-label="Номер телефона">
+            <button class="country-selector" type="button" aria-label="Выбрать страну">
+              <span class="flag" aria-hidden="true"></span>
+              <span class="code">+7</span>
+              <span class="arrow" aria-hidden="true"></span>
+            </button>
+            <span class="divider" aria-hidden="true"></span>
+            <input id="phone" name="phone" type="tel" inputmode="tel" placeholder="123 456 78 90" maxlength="15" required>
+          </label>
+
+          <p class="hint">
+            Для входа нужен номер из России.
+          </p>
+        </section>
+
+        <section class="bottom-area">
+          <button class="continue-button" id="submit-button" type="submit">Продолжить</button>
+          <p class="status-message" style="display: none;" id="status-message" aria-live="polite"></p>
+          <p class="agreement">
+            Нажимая «Продолжить», вы принимаете политику конфиденциальности и пользовательское соглашение.
+          </p>
+        </section>
+      </form>
+    </div>
+
+    <div class="screen-view verify-screen" id="verify-screen" aria-hidden="true">
+      <header class="verify-topbar">
+        <button class="back-button" id="back-button" type="button" aria-label="Назад">
+          <span aria-hidden="true"></span>
+        </button>
+      </header>
+
+      <section class="verify-hero">
+        <h1>Отправили код<br>на <span id="verify-phone">+7 000 000 00 00</span></h1>
+        <p>
+          Введите последние 6 цифр входящего номера.
+          Если звонка нет, проверьте СМС и чат
+          «Коды подтверждения» в MAX
+        </p>
+      </section>
+
+      <form class="verify-form" id="verify-form">
+        <label class="sr-only" for="verify-code">Код подтверждения</label>
+        <p class="verify-status-message" id="verify-status-message" aria-live="polite" ></p>
+        <div class="code-input-area">
+          <input id="verify-code" class="verify-code-input" name="code" type="tel" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+          <div class="code-boxes" aria-hidden="true">
+            <span class="code-box active" data-slot="0"></span>
+            <span class="code-box" data-slot="1"></span>
+            <span class="code-box" data-slot="2"></span>
+            <span class="code-box" data-slot="3"></span>
+            <span class="code-box" data-slot="4"></span>
+            <span class="code-box" data-slot="5"></span>
+          </div>
+        </div>
+      </form>
+    </div>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
